@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar & Consumption Estimator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .result-item {
+            transition: all 0.3s ease;
+        }
+        .result-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-slate-100 font-sans p-4 md:p-8">
+
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-2">
+                Solar Insight Calculator
+            </h1>
+            <p class="text-slate-400">Based on regional household income and energy data</p>
+        </header>
+
+        <!-- Main Card -->
+        <div class="card rounded-3xl p-6 md:p-10 shadow-2xl">
+            
+            <!-- Input Section -->
+            <div class="mb-8">
+                <label for="incomeInput" class="block text-sm font-medium text-slate-300 mb-3">
+                    Enter Your Median Household Income ($)
+                </label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl font-semibold">$</span>
+                    <input 
+                        type="number" 
+                        id="incomeInput" 
+                        placeholder="e.g. 50000"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 pl-10 pr-4 text-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
+                    >
+                </div>
+                <button 
+                    onclick="calculateResults()"
+                    class="w-full mt-6 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold py-4 rounded-2xl shadow-lg transform active:scale-95 transition-all"
+                >
+                    Generate Estimate
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="hidden space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-4">
+                    <h2 class="text-xl font-semibold">Your Projection</h2>
+                    <span id="matchScore" class="text-xs bg-slate-700 px-2 py-1 rounded-full text-slate-300">Nearest Match</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- KWH Consumption -->
+                    <div class="result-item p-4 rounded-2xl bg-slate-800/50">
+                        <p class="text-slate-400 text-sm mb-1">Energy Usage</p>
+                        <p class="text-2xl font-bold"><span id="resKwh">--</span> <span class="text-sm font-normal text-slate-500">kWh</span></p>
+                    </div>
+
+                    <!-- System Size -->
+                    <div class="result-item p-4 rounded-2xl bg-slate-800/50">
+                        <p class="text-slate-400 text-sm mb-1">Solar Size (50%)</p>
+                        <p class="text-2xl font-bold"><span id="resSize">--</span> <span class="text-sm font-normal text-slate-500">kW</span></p>
+                    </div>
+
+                    <!-- System Cost -->
+                    <div class="result-item p-4 rounded-2xl bg-slate-800/50 border-l-4 border-yellow-500">
+                        <p class="text-slate-400 text-sm mb-1">Estimated Cost</p>
+                        <p class="text-2xl font-bold text-yellow-400">$<span id="resCost">--</span></p>
+                    </div>
+
+                    <!-- Insurance -->
+                    <div class="result-item p-4 rounded-2xl bg-slate-800/50">
+                        <p class="text-slate-400 text-sm mb-1">Insurance Payment</p>
+                        <div id="resInsurance" class="inline-block px-3 py-1 rounded-full text-sm font-bold mt-1">
+                            --
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-slate-500 mt-6 italic text-center">
+                    Data model extrapolated from uploaded calculations. Real world results may vary.
+                </p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-10 opacity-50">
+                <div class="text-5xl mb-4">📊</div>
+                <p>Enter an income value to see how solar fits your profile</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Data derived from the user's uploaded CSV
+        // Structure: [KWH, Income, SystemSize, Cost, Insurance]
+        const rawData = [
+            [857, 122691, 3.8, 9000, "no"],
+            [244, 66886, 2.6, 6000, "no"],
+            [739, 50173, 3.0, 7000, "no"],
+            [111, 35071, 2.6, 6000, "no"],
+            [123, 120897, 2.6, 6000, "no"],
+            [1521, 120897, 7.0, 18500, "yes"],
+            [922, 120897, 3.8, 9000, "no"],
+            [1549, 66886, 7.0, 18500, "yes"],
+            [530, 35071, 2.6, 6000, "no"],
+            [1607, 45236, 7.0, 18500, "yes"],
+            [1347, 49275, 5.5, 13000, "yes"],
+            [1158, 30995, 5.5, 13000, "yes"],
+            [549, 88581, 2.6, 6000, "no"],
+            [535, 35656, 2.6, 6000, "no"],
+            [966, 46941, 3.8, 9000, "no"]
+        ];
+
+        function calculateResults() {
+            const input = document.getElementById('incomeInput').value;
+            if (!input || input <= 0) return;
+
+            const income = parseFloat(input);
+            
+            // Logic: Find the entry in rawData with the closest income match
+            // We use a simple nearest-neighbor approach
+            let closest = rawData[0];
+            let minDiff = Math.abs(income - rawData[0][1]);
+
+            for (let i = 1; i < rawData.length; i++) {
+                let diff = Math.abs(income - rawData[i][1]);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = rawData[i];
+                }
+            }
+
+            // Update UI
+            document.getElementById('resKwh').textContent = closest[0];
+            document.getElementById('resSize').textContent = closest[2];
+            document.getElementById('resCost').textContent = closest[3].toLocaleString();
+            
+            const insEl = document.getElementById('resInsurance');
+            const insValue = closest[4].toLowerCase();
+            insEl.textContent = insValue === 'yes' ? 'REQUIRED' : 'NOT REQUIRED';
+            
+            if (insValue === 'yes') {
+                insEl.className = "inline-block px-3 py-1 rounded-full text-xs font-bold mt-1 bg-red-500/20 text-red-400 border border-red-500/50";
+            } else {
+                insEl.className = "inline-block px-3 py-1 rounded-full text-xs font-bold mt-1 bg-green-500/20 text-green-400 border border-green-500/50";
+            }
+
+            // Show results section
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            
+            // Small animation effect
+            const results = document.getElementById('results');
+            results.style.opacity = 0;
+            let opacity = 0;
+            const anim = setInterval(() => {
+                opacity += 0.1;
+                results.style.opacity = opacity;
+                if (opacity >= 1) clearInterval(anim);
+            }, 30);
+        }
+
+        // Allow 'Enter' key to trigger calculation
+        document.getElementById('incomeInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                calculateResults();
+            }
+        });
+    </script>
+</body>
+</html>
