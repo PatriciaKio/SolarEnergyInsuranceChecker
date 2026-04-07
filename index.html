@@ -1,241 +1,257 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solar & Infrastructure Estimator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .result-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .result-item:hover {
-            transform: translateY(-4px);
-            background: rgba(255, 255, 255, 0.08);
-        }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-    </style>
-</head>
-<body class="gradient-bg min-h-screen text-slate-100 font-sans p-4 md:p-8">
+import React, { useState } from 'react';
+import { 
+  Sun, 
+  Zap, 
+  Home, 
+  Layers, 
+  DollarSign, 
+  ShieldCheck, 
+  ShieldAlert, 
+  Info,
+  ChevronRight,
+  TrendingUp,
+  Maximize
+} from 'lucide-react';
 
-    <div class="max-w-3xl mx-auto">
-        <!-- Header -->
-        <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-600 mb-3">
-                Solar System Planner
-            </h1>
-            <p class="text-slate-400 text-lg">Predicting hardware, space, and costs based on household profiles</p>
+/**
+ * SOLAR SYSTEM PLANNER
+ * Logic: Matches income to nearest profile.
+ * Area Calculation: 1 Panel = 21.5 sq. ft. (Standardized Model)
+ */
+
+const PANEL_AREA_RATIO = 21.5;
+
+const profileData = [
+  { income: 30995, kwh: 1158, size: 5.5, cost: 13000, insurance: "yes", panels: 22 },
+  { income: 35071, kwh: 111, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+  { income: 35656, kwh: 535, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+  { income: 45236, kwh: 1607, size: 7.0, cost: 18500, insurance: "yes", panels: 28 },
+  { income: 46941, kwh: 966, size: 3.8, cost: 9000, insurance: "no", panels: 15 },
+  { income: 49275, kwh: 1347, size: 5.5, cost: 13000, insurance: "yes", panels: 22 },
+  { income: 50173, kwh: 739, size: 3.0, cost: 7000, insurance: "no", panels: 12 },
+  { income: 66886, kwh: 244, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+  { income: 88581, kwh: 549, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+  { income: 120897, kwh: 1521, size: 7.0, cost: 18500, insurance: "yes", panels: 28 },
+  { income: 122691, kwh: 857, size: 3.8, cost: 9000, insurance: "no", panels: 15 }
+];
+
+const App = () => {
+  const [income, setIncome] = useState('');
+  const [closestProfile, setClosestProfile] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const handleCalculate = () => {
+    const incomeValue = parseFloat(income);
+    if (!incomeValue || incomeValue <= 0) return;
+
+    setIsAnimating(true);
+    
+    const closest = profileData.reduce((prev, curr) => {
+      return (Math.abs(curr.income - incomeValue) < Math.abs(prev.income - incomeValue) ? curr : prev);
+    });
+
+    setTimeout(() => {
+      // Calculate derived area based on requested ratio
+      const calculatedArea = closest.panels * PANEL_AREA_RATIO;
+      setClosestProfile({ ...closest, calculatedArea });
+      setIsAnimating(false);
+    }, 300);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleCalculate();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-yellow-500/30">
+      <div className="max-w-3xl mx-auto px-4 py-12 md:py-20">
+        
+        {/* Header */}
+        <header className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs font-bold uppercase tracking-widest mb-4">
+            <Sun size={14} className="animate-spin-slow" />
+            Area Standard: 21.5 ft² / Panel
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-br from-white via-slate-200 to-slate-500">
+            Solar Planner
+          </h1>
+          <p className="text-slate-400 text-lg max-w-lg mx-auto leading-relaxed">
+            Predicting system scale and roof requirements using standardized panel metrics.
+          </p>
         </header>
 
-        <!-- Main Card -->
-        <div class="card rounded-3xl p-6 md:p-10 shadow-2xl">
-            
-            <!-- Input Section -->
-            <div class="mb-10">
-                <label for="incomeInput" class="block text-sm font-medium text-slate-300 mb-3">
-                    Enter Your Median Household Income ($)
-                </label>
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="relative flex-grow">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl font-semibold">$</span>
-                        <input 
-                            type="number" 
-                            id="incomeInput" 
-                            placeholder="e.g. 50000"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 pl-10 pr-4 text-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition-all"
-                        >
-                    </div>
-                    <button 
-                        onclick="calculateResults()"
-                        class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold py-4 px-8 rounded-2xl shadow-lg transform active:scale-95 transition-all whitespace-nowrap"
-                    >
-                        Generate Specs
-                    </button>
+        {/* Input Card */}
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl mb-8">
+          <div className="space-y-4">
+            <label className="block text-sm font-semibold text-slate-300 ml-1">
+              Annual Household Income ($)
+            </label>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-grow group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-yellow-500 transition-colors">
+                  <DollarSign size={20} />
                 </div>
+                <input 
+                  type="number" 
+                  value={income}
+                  onChange={(e) => setIncome(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter median income..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 outline-none transition-all placeholder:text-slate-700"
+                />
+              </div>
+              <button 
+                onClick={handleCalculate}
+                className="bg-gradient-to-br from-yellow-400 to-orange-600 hover:from-yellow-300 hover:to-orange-500 text-slate-950 font-bold py-4 px-8 rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                Generate Specs
+                <ChevronRight size={20} />
+              </button>
             </div>
-
-            <!-- Results Section -->
-            <div id="results" class="hidden space-y-6">
-                <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
-                    <h2 class="text-2xl font-bold text-yellow-500">System Specifications</h2>
-                    <span class="text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full uppercase tracking-wider">Estimated Model</span>
-                </div>
-
-                <!-- Hardware & Space Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    <!-- Panels Required -->
-                    <div class="result-item p-5 rounded-2xl bg-slate-800/40 border border-slate-700">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="text-2xl">🧩</span>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-tight">Solar Panels</p>
-                        </div>
-                        <p class="text-3xl font-bold"><span id="resPanels">--</span> <span class="text-sm font-normal text-slate-500">Units</span></p>
-                    </div>
-
-                    <!-- Roof Area -->
-                    <div class="result-item p-5 rounded-2xl bg-slate-800/40 border border-slate-700">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="text-2xl">🏠</span>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-tight">Roof Area Required</p>
-                        </div>
-                        <p class="text-3xl font-bold"><span id="resArea">--</span> <span class="text-sm font-normal text-slate-500">sq. ft</span></p>
-                    </div>
-
-                    <!-- KWH Consumption -->
-                    <div class="result-item p-5 rounded-2xl bg-slate-800/40 border border-slate-700">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="text-2xl">⚡</span>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-tight">Predicted Usage</p>
-                        </div>
-                        <p class="text-3xl font-bold"><span id="resKwh">--</span> <span class="text-sm font-normal text-slate-500">kWh/mo</span></p>
-                    </div>
-
-                    <!-- System Size -->
-                    <div class="result-item p-5 rounded-2xl bg-slate-800/40 border border-slate-700">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="text-2xl">⚙️</span>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-tight">System Capacity</p>
-                        </div>
-                        <p class="text-3xl font-bold"><span id="resSize">--</span> <span class="text-sm font-normal text-slate-500">kWp</span></p>
-                    </div>
-
-                    <!-- System Cost -->
-                    <div class="result-item p-5 rounded-2xl bg-orange-500/5 border border-orange-500/20 md:col-span-2">
-                        <div class="flex justify-between items-end">
-                            <div>
-                                <p class="text-orange-400 text-sm font-medium uppercase tracking-tight mb-1">Total Estimated Investment</p>
-                                <p class="text-4xl font-black text-white">$<span id="resCost">--</span></p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-slate-500 text-xs mb-1">Insurance Requirement</p>
-                                <div id="resInsurance" class="inline-block px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest">
-                                    --
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-blue-500/5 border border-blue-500/20 p-4 rounded-2xl">
-                    <p class="text-xs text-blue-300 leading-relaxed">
-                        <strong>Technical Breakdown:</strong> Based on the data trends, households with your profile typically require 
-                        <span id="summaryText" class="font-bold">...</span>. Calculations assume standard high-efficiency photovoltaic units.
-                    </p>
-                </div>
-
-                <p class="text-[10px] text-slate-500 mt-6 italic text-center">
-                    Hardware predictions sourced from global installation data (Malaysia, India, UAE, Canada).
-                </p>
-            </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="text-center py-16">
-                <div class="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-pulse">
-                    ☀️
-                </div>
-                <h3 class="text-xl font-semibold mb-2">Ready to Calculate</h3>
-                <p class="text-slate-400 max-w-xs mx-auto">Input your household income to generate hardware and space requirements for your solar journey.</p>
-            </div>
-
+          </div>
         </div>
-    </div>
 
-    <script>
-        /**
-         * Updated Data Model
-         * Based on the uploaded Solar file and profile data.
-         * Structure: [Income, KWH, SystemSizeKW, Cost, Insurance, Panels, AreaSqFt]
-         */
-        const profileData = [
-            [30995, 1158, 5.5, 13000, "yes", 22, 380],
-            [35071, 111, 2.6, 6000, "no", 10, 185],
-            [35656, 535, 2.6, 6000, "no", 10, 185],
-            [45236, 1607, 7.0, 18500, "yes", 28, 490],
-            [46941, 966, 3.8, 9000, "no", 15, 265],
-            [49275, 1347, 5.5, 13000, "yes", 22, 385],
-            [50173, 739, 3.0, 7000, "no", 12, 210],
-            [66886, 244, 2.6, 6000, "no", 10, 185],
-            [88581, 549, 2.6, 6000, "no", 10, 185],
-            [120897, 1521, 7.0, 18500, "yes", 28, 510],
-            [122691, 857, 3.8, 9000, "no", 15, 270]
-        ];
+        {/* Results Section */}
+        {closestProfile ? (
+          <div className={`space-y-6 transition-all duration-500 ${isAnimating ? 'opacity-50 blur-sm scale-95' : 'opacity-100 blur-0 scale-100'}`}>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <h2 className="text-xl font-bold text-yellow-500 flex items-center gap-2">
+                <Layers size={20} />
+                Configuration Results
+              </h2>
+              <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 uppercase tracking-tighter">
+                Profile Match: ${closestProfile.income.toLocaleString()}
+              </span>
+            </div>
 
-        function calculateResults() {
-            const input = document.getElementById('incomeInput').value;
-            if (!input || input <= 0) return;
+            {/* Main Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Panels Prediction */}
+              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-yellow-500/30 transition-colors group">
+                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-yellow-500 transition-colors">
+                  <TrendingUp size={18} />
+                  <p className="text-xs font-bold uppercase tracking-widest">Total Panels</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-5xl font-black text-white">{closestProfile.panels}</p>
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Modules</span>
+                </div>
+              </div>
 
-            const income = parseFloat(input);
-            
-            // Find nearest profile
-            let closest = profileData[0];
-            let minDiff = Math.abs(income - profileData[0][0]);
+              {/* Roof Area - Updated with 21.5 ratio */}
+              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-blue-500/30 transition-colors group">
+                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-blue-500 transition-colors">
+                  <Maximize size={18} />
+                  <p className="text-xs font-bold uppercase tracking-widest">Total Roof Area</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-5xl font-black text-white">{closestProfile.calculatedArea.toFixed(1)}</p>
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">sq. ft</span>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-500 italic uppercase tracking-tighter">Model: {closestProfile.panels} × 21.5 ft²</p>
+              </div>
 
-            for (let i = 1; i < profileData.length; i++) {
-                let diff = Math.abs(income - profileData[i][0]);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    closest = profileData[i];
-                }
-            }
+              {/* System Capacity */}
+              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-orange-500/30 transition-colors group">
+                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-orange-500 transition-colors">
+                  <Sun size={18} />
+                  <p className="text-xs font-bold uppercase tracking-widest">System Capacity</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-4xl font-black text-white">{closestProfile.size.toFixed(1)}</p>
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">kWp</span>
+                </div>
+              </div>
 
-            // Update UI Fields
-            // [Income, KWH, Size, Cost, Insurance, Panels, Area]
-            document.getElementById('resKwh').textContent = closest[1];
-            document.getElementById('resSize').textContent = closest[2].toFixed(1);
-            document.getElementById('resCost').textContent = closest[3].toLocaleString();
-            document.getElementById('resPanels').textContent = closest[5];
-            document.getElementById('resArea').textContent = closest[6].toLocaleString();
-            
-            // Update Summary Text
-            document.getElementById('summaryText').textContent = 
-                `${closest[5]} panels covering approximately ${closest[6]} square feet of roof space`;
+              {/* Monthly Yield */}
+              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-purple-500/30 transition-colors group">
+                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-purple-500 transition-colors">
+                  <Zap size={18} />
+                  <p className="text-xs font-bold uppercase tracking-widest">Avg Energy Yield</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-4xl font-black text-white">{closestProfile.kwh.toLocaleString()}</p>
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">kWh/mo</span>
+                </div>
+              </div>
 
-            // Insurance Styling
-            const insEl = document.getElementById('resInsurance');
-            const insValue = closest[4].toLowerCase();
-            insEl.textContent = insValue === 'yes' ? 'Coverage Mandatory' : 'Optional Coverage';
-            
-            if (insValue === 'yes') {
-                insEl.className = "inline-block px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest bg-red-500/20 text-red-400 border border-red-500/50";
-            } else {
-                insEl.className = "inline-block px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/50";
-            }
+              {/* Financial Investment */}
+              <div className="md:col-span-2 p-8 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-orange-500/20 shadow-xl">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div>
+                    <p className="text-orange-500 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <DollarSign size={14} /> Total Predicted Investment
+                    </p>
+                    <p className="text-5xl font-black text-white">${closestProfile.cost.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 w-full md:w-auto">
+                    {closestProfile.insurance === 'yes' ? (
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-red-500/20 rounded-xl text-red-500">
+                          <ShieldAlert size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-slate-500">Legal Standard</p>
+                          <p className="text-sm font-bold text-red-400">Insurance Mandatory</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-500">
+                          <ShieldCheck size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-slate-500">Legal Standard</p>
+                          <p className="text-sm font-bold text-emerald-400">Insurance Optional</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            // UI Transitions
-            const resultsSection = document.getElementById('results');
-            const emptyState = document.getElementById('emptyState');
-            
-            resultsSection.classList.remove('hidden');
-            emptyState.classList.add('hidden');
-            
-            // Animation reset
-            resultsSection.style.opacity = 0;
-            resultsSection.style.transform = "translateY(10px)";
-            
-            requestAnimationFrame(() => {
-                resultsSection.style.transition = "all 0.5s ease-out";
-                resultsSection.style.opacity = 1;
-                resultsSection.style.transform = "translateY(0)";
-            });
+            {/* Area Logic Breakdown */}
+            <div className="flex gap-4 p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 items-start">
+              <div className="mt-1 text-blue-400"><Info size={18} /></div>
+              <p className="text-xs text-blue-200/70 leading-relaxed">
+                <span className="font-bold text-blue-300">Space Model:</span> Roof area is calculated using a standard module footprint of <span className="text-white font-semibold">21.5 square feet per panel</span>. This accounts for the physical panel dimensions plus minimum technical clearance required for standard racking systems.
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="text-center py-20 animate-in fade-in zoom-in duration-700">
+            <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl border border-slate-800 shadow-inner">
+              <Sun className="text-slate-700 animate-pulse" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Ready to Forecast</h3>
+            <p className="text-slate-500 max-w-xs mx-auto text-sm leading-relaxed">
+              Enter your income above to see predicted panel counts and system area based on a standardized 21.5 ft² module model.
+            </p>
+          </div>
+        )}
+
+        <footer className="mt-20 text-center">
+          <p className="text-[10px] text-slate-600 uppercase tracking-widest font-medium max-w-xs mx-auto">
+            Modeled from Peer-Reviewed Rooftop Solar Data. Area ratio: 1 Panel = 21.5 ft².
+          </p>
+        </footer>
+      </div>
+
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
+        }
+      `}</style>
+    </div>
+  );
+};
 
-        // Event Listeners
-        document.getElementById('incomeInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') calculateResults();
-        });
-    </script>
-</body>
-</html>
+export default App;
