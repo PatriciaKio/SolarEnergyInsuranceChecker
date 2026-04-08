@@ -14,21 +14,38 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0;
+            padding: 0;
+        }
+        /* Fade-in animation for results */
+        .result-enter {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 selection:bg-yellow-500/30">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         // Custom Icon Component to handle Lucide in CDN environment
         const Icon = ({ name, size = 20, className = "" }) => {
+            const iconRef = useRef(null);
+            
             useEffect(() => {
-                lucide.createIcons();
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
             }, [name]);
-            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+
+            return <i data-lucide={name} style={{ width: size, height: size }} className={`inline-block ${className}`}></i>;
         };
 
         const PANEL_AREA_RATIO = 21.5;
@@ -130,7 +147,7 @@
                                             onChange={(e) => setInputValue(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleCalculate()}
                                             placeholder={inputMode === 'income' ? "e.g. 50000" : "e.g. 800"}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 outline-none transition-all placeholder:text-slate-700"
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 outline-none transition-all placeholder:text-slate-700 text-white"
                                         />
                                     </div>
                                     <button 
@@ -145,7 +162,7 @@
                         </div>
 
                         {closestProfile ? (
-                            <div className={`space-y-6 transition-all duration-500 ${isAnimating ? 'opacity-50 blur-sm scale-[0.98]' : 'opacity-100 blur-0 scale-100'}`}>
+                            <div className={`space-y-6 transition-all duration-500 result-enter ${isAnimating ? 'opacity-50 blur-sm scale-[0.98]' : 'opacity-100 blur-0 scale-100'}`}>
                                 <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                                     <h2 className="text-xl font-bold text-yellow-500 flex items-center gap-2">
                                         <Icon name="layers" size={20} />
