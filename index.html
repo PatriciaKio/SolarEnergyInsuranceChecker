@@ -1,283 +1,271 @@
-import React, { useState } from 'react';
-import { 
-  Sun, 
-  Zap, 
-  Home, 
-  Layers, 
-  DollarSign, 
-  ShieldCheck, 
-  ShieldAlert, 
-  Info,
-  ChevronRight,
-  TrendingUp,
-  Maximize,
-  Lightbulb
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar System Planner</title>
+    <!-- React and Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 selection:bg-yellow-500/30">
+    <div id="root"></div>
 
-/**
- * SOLAR SYSTEM PLANNER - GITHUB COMPATIBLE VERSION
- * * Logic: Matches income OR energy consumption to nearest profile.
- * Area Calculation: 1 Panel = 21.5 sq. ft.
- * Based on Case Study Data: Malaysia, India, Abu Dhabi, Canada, Egypt.
- */
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-const PANEL_AREA_RATIO = 21.5;
+        // Custom Icon Component to handle Lucide in CDN environment
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => {
+                lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
 
-// Profile data derived from the peer-reviewed case studies
-const profileData = [
-  { income: 30995, kwh: 1158, size: 5.5, cost: 13000, insurance: "yes", panels: 22 },
-  { income: 35071, kwh: 111, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
-  { income: 35656, kwh: 535, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
-  { income: 45236, kwh: 1607, size: 7.0, cost: 18500, insurance: "yes", panels: 28 },
-  { income: 46941, kwh: 966, size: 3.8, cost: 9000, insurance: "no", panels: 15 },
-  { income: 49275, kwh: 1347, size: 5.5, cost: 13000, insurance: "yes", panels: 22 },
-  { income: 50173, kwh: 739, size: 3.0, cost: 7000, insurance: "no", panels: 12 },
-  { income: 66886, kwh: 244, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
-  { income: 88581, kwh: 549, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
-  { income: 120897, kwh: 1521, size: 7.0, cost: 18500, insurance: "yes", panels: 28 },
-  { income: 122691, kwh: 857, size: 3.8, cost: 9000, insurance: "no", panels: 15 }
-];
+        const PANEL_AREA_RATIO = 21.5;
 
-const App = () => {
-  const [inputValue, setInputValue] = useState('');
-  const [inputMode, setInputMode] = useState('income'); // 'income' or 'energy'
-  const [closestProfile, setClosestProfile] = useState(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+        const profileData = [
+            { income: 30995, kwh: 1158, size: 5.5, cost: 13000, insurance: "yes", panels: 22 },
+            { income: 35071, kwh: 111, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+            { income: 35656, kwh: 535, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+            { income: 45236, kwh: 1607, size: 7.0, cost: 18500, insurance: "yes", panels: 28 },
+            { income: 46941, kwh: 966, size: 3.8, cost: 9000, insurance: "no", panels: 15 },
+            { income: 49275, kwh: 1347, size: 5.5, cost: 13000, insurance: "yes", panels: 22 },
+            { income: 50173, kwh: 739, size: 3.0, cost: 7000, insurance: "no", panels: 12 },
+            { income: 66886, kwh: 244, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+            { income: 88581, kwh: 549, size: 2.6, cost: 6000, insurance: "no", panels: 10 },
+            { income: 120897, kwh: 1521, size: 7.0, cost: 18500, insurance: "yes", panels: 28 },
+            { income: 122691, kwh: 857, size: 3.8, cost: 9000, insurance: "no", panels: 15 }
+        ];
 
-  const handleCalculate = () => {
-    const val = parseFloat(inputValue);
-    if (!val || val <= 0) return;
+        const App = () => {
+            const [inputValue, setInputValue] = useState('');
+            const [inputMode, setInputMode] = useState('income');
+            const [closestProfile, setClosestProfile] = useState(null);
+            const [isAnimating, setIsAnimating] = useState(false);
 
-    setIsAnimating(true);
-    
-    // Find closest match based on selected mode
-    const closest = profileData.reduce((prev, curr) => {
-      const currentDiff = inputMode === 'income' 
-        ? Math.abs(curr.income - val) 
-        : Math.abs(curr.kwh - val);
-      const prevDiff = inputMode === 'income' 
-        ? Math.abs(prev.income - val) 
-        : Math.abs(prev.kwh - val);
-      
-      return currentDiff < prevDiff ? curr : prev;
-    });
+            const handleCalculate = () => {
+                const val = parseFloat(inputValue);
+                if (!val || val <= 0) return;
 
-    // Short timeout to allow UI transitions
-    setTimeout(() => {
-      const calculatedArea = closest.panels * PANEL_AREA_RATIO;
-      setClosestProfile({ ...closest, calculatedArea });
-      setIsAnimating(false);
-    }, 300);
-  };
+                setIsAnimating(true);
+                
+                const closest = profileData.reduce((prev, curr) => {
+                    const currentDiff = inputMode === 'income' 
+                        ? Math.abs(curr.income - val) 
+                        : Math.abs(curr.kwh - val);
+                    const prevDiff = inputMode === 'income' 
+                        ? Math.abs(prev.income - val) 
+                        : Math.abs(prev.kwh - val);
+                    return currentDiff < prevDiff ? curr : prev;
+                });
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleCalculate();
-  };
+                setTimeout(() => {
+                    const calculatedArea = closest.panels * PANEL_AREA_RATIO;
+                    setClosestProfile({ ...closest, calculatedArea });
+                    setIsAnimating(false);
+                }, 300);
+            };
 
-  const toggleMode = (mode) => {
-    setInputMode(mode);
-    setClosestProfile(null);
-    setInputValue('');
-  };
+            const toggleMode = (mode) => {
+                setInputMode(mode);
+                setClosestProfile(null);
+                setInputValue('');
+            };
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-yellow-500/30">
-      <div className="max-w-3xl mx-auto px-4 py-12 md:py-20">
-        
-        {/* Header Section */}
-        <header className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs font-bold uppercase tracking-widest mb-4">
-            <Sun size={14} className="animate-pulse" />
-            Standardized 21.5 ft² Model
-          </div>
-          <h1 className="text-4xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-br from-white via-slate-200 to-slate-500 tracking-tight">
-            Solar Planner
-          </h1>
-          <p className="text-slate-400 text-lg max-w-lg mx-auto leading-relaxed">
-            Forecasting system scale based on your household's financial or energy profile.
-          </p>
-        </header>
+            return (
+                <div className="min-h-screen">
+                    <div className="max-w-3xl mx-auto px-4 py-12 md:py-20">
+                        
+                        <header className="text-center mb-10">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-xs font-bold uppercase tracking-widest mb-4">
+                                <Icon name="sun" size={14} className="animate-pulse" />
+                                Standardized 21.5 ft² Model
+                            </div>
+                            <h1 className="text-4xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-br from-white via-slate-200 to-slate-500 tracking-tight">
+                                Solar Planner
+                            </h1>
+                            <p className="text-slate-400 text-lg max-w-lg mx-auto leading-relaxed">
+                                Forecasting system scale based on your household's financial or energy profile.
+                            </p>
+                        </header>
 
-        {/* Input Interface */}
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl mb-8">
-          {/* Mode Switcher */}
-          <div className="flex p-1 bg-slate-950 rounded-xl border border-slate-800 mb-6 w-full max-w-sm mx-auto">
-            <button 
-              onClick={() => toggleMode('income')}
-              className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all ${inputMode === 'income' ? 'bg-yellow-500 text-slate-950 shadow-lg shadow-yellow-500/20' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              Income Based
-            </button>
-            <button 
-              onClick={() => toggleMode('energy')}
-              className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all ${inputMode === 'energy' ? 'bg-yellow-500 text-slate-950 shadow-lg shadow-yellow-500/20' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              Energy Based
-            </button>
-          </div>
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl mb-8">
+                            <div className="flex p-1 bg-slate-950 rounded-xl border border-slate-800 mb-6 w-full max-w-sm mx-auto">
+                                <button 
+                                    onClick={() => toggleMode('income')}
+                                    className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all ${inputMode === 'income' ? 'bg-yellow-500 text-slate-950 shadow-lg shadow-yellow-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    Income Based
+                                </button>
+                                <button 
+                                    onClick={() => toggleMode('energy')}
+                                    className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold transition-all ${inputMode === 'energy' ? 'bg-yellow-500 text-slate-950 shadow-lg shadow-yellow-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    Energy Based
+                                </button>
+                            </div>
 
-          <div className="space-y-4">
-            <label className="block text-sm font-semibold text-slate-300 ml-1">
-              {inputMode === 'income' ? 'Annual Household Income ($)' : 'Monthly Energy Consumption (kWh)'}
-            </label>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-grow group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-yellow-500 transition-colors">
-                  {inputMode === 'income' ? <DollarSign size={20} /> : <Zap size={20} />}
-                </div>
-                <input 
-                  type="number" 
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={inputMode === 'income' ? "e.g. 50000" : "e.g. 800"}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 outline-none transition-all placeholder:text-slate-700"
-                />
-              </div>
-              <button 
-                onClick={handleCalculate}
-                className="bg-gradient-to-br from-yellow-400 to-orange-600 hover:from-yellow-300 hover:to-orange-500 text-slate-950 font-bold py-4 px-8 rounded-2xl shadow-xl hover:shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                Forecast
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Results Panel */}
-        {closestProfile ? (
-          <div className={`space-y-6 transition-all duration-500 ${isAnimating ? 'opacity-50 blur-sm scale-[0.98]' : 'opacity-100 blur-0 scale-100'}`}>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h2 className="text-xl font-bold text-yellow-500 flex items-center gap-2">
-                <Layers size={20} />
-                System Recommendation
-              </h2>
-              <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 uppercase tracking-tighter">
-                {inputMode === 'income' ? `Matched Income: $${closestProfile.income.toLocaleString()}` : `Matched Consumption: ${closestProfile.kwh} kWh`}
-              </span>
-            </div>
-
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Panel Count */}
-              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-yellow-500/30 transition-all group">
-                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-yellow-500 transition-colors">
-                  <TrendingUp size={18} />
-                  <p className="text-xs font-bold uppercase tracking-widest">Panel Count</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-5xl font-black text-white">{closestProfile.panels}</p>
-                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Modules</span>
-                </div>
-              </div>
-
-              {/* Roof Area Result */}
-              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-blue-500/30 transition-all group">
-                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-blue-500 transition-colors">
-                  <Maximize size={18} />
-                  <p className="text-xs font-bold uppercase tracking-widest">Roof Area Needed</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-5xl font-black text-white">{closestProfile.calculatedArea.toFixed(1)}</p>
-                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">sq. ft</span>
-                </div>
-                <p className="mt-2 text-[10px] text-slate-500 font-mono italic">Module footprint: 21.5 ft² × {closestProfile.panels}</p>
-              </div>
-
-              {/* Energy Yield */}
-              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-purple-500/30 transition-all group">
-                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-purple-500 transition-colors">
-                  <Zap size={18} />
-                  <p className="text-xs font-bold uppercase tracking-widest">Annual Yield</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-4xl font-black text-white">{closestProfile.kwh.toLocaleString()}</p>
-                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">kWh/mo</span>
-                </div>
-              </div>
-
-              {/* Power Capacity */}
-              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-orange-500/30 transition-all group">
-                <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-orange-500 transition-colors">
-                  <Sun size={18} />
-                  <p className="text-xs font-bold uppercase tracking-widest">System Size</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-4xl font-black text-white">{closestProfile.size.toFixed(1)}</p>
-                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">kWp</span>
-                </div>
-              </div>
-
-              {/* Cost Analysis */}
-              <div className="md:col-span-2 p-8 rounded-3xl bg-slate-900/80 border border-orange-500/20 shadow-xl overflow-hidden relative">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-                  <div>
-                    <p className="text-orange-500 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <DollarSign size={14} /> Predicted Investment
-                    </p>
-                    <p className="text-5xl font-black text-white">${closestProfile.cost.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 w-full md:w-auto">
-                    {closestProfile.insurance === 'yes' ? (
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-red-500/20 rounded-xl text-red-500">
-                          <ShieldAlert size={24} />
+                            <div className="space-y-4">
+                                <label className="block text-sm font-semibold text-slate-300 ml-1">
+                                    {inputMode === 'income' ? 'Annual Household Income ($)' : 'Monthly Energy Consumption (kWh)'}
+                                </label>
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <div className="relative flex-grow group">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-yellow-500 transition-colors">
+                                            <Icon name={inputMode === 'income' ? "dollar-sign" : "zap"} size={20} />
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleCalculate()}
+                                            placeholder={inputMode === 'income' ? "e.g. 50000" : "e.g. 800"}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xl focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 outline-none transition-all placeholder:text-slate-700"
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={handleCalculate}
+                                        className="bg-gradient-to-br from-yellow-400 to-orange-600 hover:from-yellow-300 hover:to-orange-500 text-slate-950 font-bold py-4 px-8 rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Forecast
+                                        <Icon name="chevron-right" size={20} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-slate-500">Legal Standard</p>
-                          <p className="text-sm font-bold text-red-400">Insurance Required</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-500">
-                          <ShieldCheck size={24} />
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-slate-500">Legal Standard</p>
-                          <p className="text-sm font-bold text-emerald-400">Insurance Optional</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
+                        {closestProfile ? (
+                            <div className={`space-y-6 transition-all duration-500 ${isAnimating ? 'opacity-50 blur-sm scale-[0.98]' : 'opacity-100 blur-0 scale-100'}`}>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                                    <h2 className="text-xl font-bold text-yellow-500 flex items-center gap-2">
+                                        <Icon name="layers" size={20} />
+                                        System Recommendation
+                                    </h2>
+                                    <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 uppercase tracking-tighter">
+                                        {inputMode === 'income' ? `Matched Income: $${closestProfile.income.toLocaleString()}` : `Matched Consumption: ${closestProfile.kwh} kWh`}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-yellow-500/30 transition-all group">
+                                        <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-yellow-500 transition-colors">
+                                            <Icon name="trending-up" size={18} />
+                                            <p className="text-xs font-bold uppercase tracking-widest">Panel Count</p>
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <p className="text-5xl font-black text-white">{closestProfile.panels}</p>
+                                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Modules</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-blue-500/30 transition-all group">
+                                        <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-blue-500 transition-colors">
+                                            <Icon name="maximize" size={18} />
+                                            <p className="text-xs font-bold uppercase tracking-widest">Roof Area Needed</p>
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <p className="text-5xl font-black text-white">{closestProfile.calculatedArea.toFixed(1)}</p>
+                                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">sq. ft</span>
+                                        </div>
+                                        <p className="mt-2 text-[10px] text-slate-500 font-mono italic">Module footprint: 21.5 ft² × {closestProfile.panels}</p>
+                                    </div>
+
+                                    <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-purple-500/30 transition-all group">
+                                        <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-purple-500 transition-colors">
+                                            <Icon name="zap" size={18} />
+                                            <p className="text-xs font-bold uppercase tracking-widest">Annual Yield</p>
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <p className="text-4xl font-black text-white">{closestProfile.kwh.toLocaleString()}</p>
+                                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">kWh/mo</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-orange-500/30 transition-all group">
+                                        <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-orange-500 transition-colors">
+                                            <Icon name="sun" size={18} />
+                                            <p className="text-xs font-bold uppercase tracking-widest">System Size</p>
+                                        </div>
+                                        <div className="flex items-baseline gap-2">
+                                            <p className="text-4xl font-black text-white">{closestProfile.size.toFixed(1)}</p>
+                                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">kWp</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="md:col-span-2 p-8 rounded-3xl bg-slate-900/80 border border-orange-500/20 shadow-xl overflow-hidden relative">
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                                            <div>
+                                                <p className="text-orange-500 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                    <Icon name="dollar-sign" size={14} /> Predicted Investment
+                                                </p>
+                                                <p className="text-5xl font-black text-white">${closestProfile.cost.toLocaleString()}</p>
+                                            </div>
+                                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 w-full md:w-auto">
+                                                {closestProfile.insurance === 'yes' ? (
+                                                    <div className="flex items-center gap-3 text-red-400">
+                                                        <Icon name="shield-alert" size={24} />
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-bold text-slate-500">Legal Standard</p>
+                                                            <p className="text-sm font-bold">Insurance Required</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 text-emerald-400">
+                                                        <Icon name="shield-check" size={24} />
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-bold text-slate-500">Legal Standard</p>
+                                                            <p className="text-sm font-bold">Insurance Optional</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-orange-500/5 rounded-full blur-3xl"></div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 items-start">
+                                    <div className="mt-1 text-blue-400"><Icon name="info" size={18} /></div>
+                                    <p className="text-[11px] text-blue-200/60 leading-relaxed uppercase tracking-wide">
+                                        <span className="font-bold text-blue-300">Data Model:</span> Calibrated from the Malaysia, India, and UAE peer-reviewed solar datasets. 
+                                        Area calculations are strictly bound to 21.5 sq. ft. per panel module footprint.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-20">
+                                <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-slate-800 shadow-inner group">
+                                    <Icon name="lightbulb" size={32} className="text-slate-700 group-hover:text-yellow-500 transition-colors" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 tracking-tight">System Forecast Ready</h3>
+                                <p className="text-slate-500 max-w-xs mx-auto text-sm leading-relaxed">
+                                    Select your preference above and enter your details to forecast your solar transition using global empirical data.
+                                </p>
+                            </div>
+                        )}
+
+                        <footer className="mt-20 py-8 border-t border-slate-900 text-center">
+                            <p className="text-[10px] text-slate-600 uppercase tracking-[0.2em] font-bold">
+                                Solar Planner Pro | GitHub Pages Ready | 21.5 ft²/Panel
+                            </p>
+                        </footer>
+                    </div>
                 </div>
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-orange-500/5 rounded-full blur-3xl"></div>
-              </div>
-            </div>
+            );
+        };
 
-            {/* Empirical Data Citation */}
-            <div className="flex gap-4 p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 items-start">
-              <div className="mt-1 text-blue-400"><Info size={18} /></div>
-              <p className="text-[11px] text-blue-200/60 leading-relaxed uppercase tracking-wide">
-                <span className="font-bold text-blue-300">Data Model:</span> Calibrated from the Malaysia, India, and UAE peer-reviewed solar datasets. 
-                Area calculations are strictly bound to 21.5 sq. ft. per panel module footprint.
-              </p>
-            </div>
-          </div>
-        ) : (
-          /* Landing State */
-          <div className="text-center py-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-slate-800 shadow-inner group">
-              <Lightbulb className="text-slate-700 group-hover:text-yellow-500 transition-colors" size={32} />
-            </div>
-            <h3 className="text-xl font-bold mb-3 tracking-tight">System Forecast Ready</h3>
-            <p className="text-slate-500 max-w-xs mx-auto text-sm leading-relaxed">
-              Select your preference above and enter your details to forecast your solar transition using global empirical data.
-            </p>
-          </div>
-        )}
-
-        <footer className="mt-20 py-8 border-t border-slate-900 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-[0.2em] font-bold">
-            Solar Planner Pro | Static GitHub Deployment | 21.5 ft²/Panel
-          </p>
-        </footer>
-      </div>
-    </div>
-  );
-};
-
-export default App;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
