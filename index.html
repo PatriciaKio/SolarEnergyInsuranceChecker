@@ -18,8 +18,8 @@
             font-family: 'Inter', sans-serif; 
             margin: 0;
             padding: 0;
+            background-color: #020617; /* slate-950 */
         }
-        /* Fade-in animation for results */
         .result-enter {
             animation: fadeIn 0.5s ease-out forwards;
         }
@@ -27,25 +27,46 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 selection:bg-yellow-500/30">
+<body class="text-slate-100 selection:bg-yellow-500/30">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Custom Icon Component to handle Lucide in CDN environment
+        /**
+         * Icon component for Lucide in CDN environments.
+         * Uses the global lucide object to replace elements.
+         */
         const Icon = ({ name, size = 20, className = "" }) => {
             const iconRef = useRef(null);
             
             useEffect(() => {
-                if (window.lucide) {
+                if (window.lucide && iconRef.current) {
                     window.lucide.createIcons();
                 }
             }, [name]);
 
-            return <i data-lucide={name} style={{ width: size, height: size }} className={`inline-block ${className}`}></i>;
+            return (
+                <i 
+                    ref={iconRef}
+                    data-lucide={name} 
+                    style={{ width: size, height: size }} 
+                    className={`inline-block align-middle ${className}`}
+                ></i>
+            );
         };
 
         const PANEL_AREA_RATIO = 21.5;
@@ -72,10 +93,11 @@
 
             const handleCalculate = () => {
                 const val = parseFloat(inputValue);
-                if (!val || val <= 0) return;
+                if (isNaN(val) || val <= 0) return;
 
                 setIsAnimating(true);
                 
+                // Find closest match in the dataset
                 const closest = profileData.reduce((prev, curr) => {
                     const currentDiff = inputMode === 'income' 
                         ? Math.abs(curr.income - val) 
@@ -86,11 +108,12 @@
                     return currentDiff < prevDiff ? curr : prev;
                 });
 
+                // Simulate processing delay for visual effect
                 setTimeout(() => {
                     const calculatedArea = closest.panels * PANEL_AREA_RATIO;
                     setClosestProfile({ ...closest, calculatedArea });
                     setIsAnimating(false);
-                }, 300);
+                }, 400);
             };
 
             const toggleMode = (mode) => {
@@ -200,7 +223,7 @@
                                     <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-purple-500/30 transition-all group">
                                         <div className="flex items-center gap-3 mb-3 text-slate-400 group-hover:text-purple-500 transition-colors">
                                             <Icon name="zap" size={18} />
-                                            <p className="text-xs font-bold uppercase tracking-widest">Annual Yield</p>
+                                            <p className="text-xs font-bold uppercase tracking-widest">Typical Generation</p>
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <p className="text-4xl font-black text-white">{closestProfile.kwh.toLocaleString()}</p>
@@ -261,7 +284,7 @@
                             </div>
                         ) : (
                             <div className="text-center py-20">
-                                <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-slate-800 shadow-inner group">
+                                <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-slate-800 shadow-inner group transition-all hover:scale-105">
                                     <Icon name="lightbulb" size={32} className="text-slate-700 group-hover:text-yellow-500 transition-colors" />
                                 </div>
                                 <h3 className="text-xl font-bold mb-3 tracking-tight">System Forecast Ready</h3>
@@ -281,7 +304,8 @@
             );
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
         root.render(<App />);
     </script>
 </body>
